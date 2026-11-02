@@ -172,6 +172,9 @@ Write-Header "Start script aanmaken"
 @echo off
 title AnanCore
 cd /d "%~dp0"
+rem Schakel de ingebouwde update-check uit (wijst naar openhpsdrzeus.com,
+rem niet relevant voor deze portable build vanaf ChasingCoffee/AnanCore).
+set ZEUS_DISABLE_UPDATE_CHECK=1
 echo.
 echo  AnanCore starten op http://localhost:6060
 echo  Open je browser: http://localhost:6060
