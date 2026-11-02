@@ -113,6 +113,26 @@ if (Test-Path $distroDir) {
 }
 New-Item -ItemType Directory -Path $distroDir | Out-Null
 
+# ── Patch: update-check uitschakelen ─────────────────────────────────────────
+# RepoUpdateService.cs wijst naar openhpsdrzeus.com — niet relevant voor deze
+# portable build. We voegen één early-return toe o.b.v. een env-variabele.
+Write-Header "Broncode patchen (update-check uitschakelen)"
+$updateSvc = Join-Path $srcDir "Zeus.Server.Hosting\RepoUpdateService.cs"
+if (Test-Path $updateSvc) {
+    $src = Get-Content $updateSvc -Raw
+    $old = '        if (!fetch)'
+    $new = '        if (!fetch || Environment.GetEnvironmentVariable("ZEUS_DISABLE_UPDATE_CHECK") == "1")'
+    if ($src -notmatch [regex]::Escape('ZEUS_DISABLE_UPDATE_CHECK')) {
+        $src = $src.Replace($old, $new)
+        Set-Content $updateSvc $src -Encoding UTF8 -NoNewline
+        Write-Ok "RepoUpdateService.cs gepatcht"
+    } else {
+        Write-Ok "RepoUpdateService.cs al gepatcht"
+    }
+} else {
+    Write-Warn "RepoUpdateService.cs niet gevonden — patch overgeslagen"
+}
+
 # ── Stap 1: Vite frontend bouwen ─────────────────────────────────────────────
 # Vite schrijft naar src\Zeus.Server.Hosting\wwwroot\
 # dotnet publish neemt die map daarna mee naar distro\
