@@ -2,7 +2,7 @@
 
 Bouwt [AnanCore](https://github.com/ChasingCoffee/AnanCore) (Zeus Standalone voor ANAN G2/HPSDR radio's) als een portable Windows distributie.
 
-Het script cloned de broncode, bouwt de .NET 10 backend en de Vite/React frontend, en zet alles klaar in een `dist\` map naast het script. Die map is portable: zippen en doorsturen.
+Het script cloned de broncode, bouwt de .NET 10 backend en de Vite/React frontend, en zet alles klaar in een `distro\` map naast het script. Die map is portable: zippen en doorsturen.
 
 ---
 
@@ -24,10 +24,10 @@ cd win-anancore
 .\Install-AnanCore.ps1
 ```
 
-Na afloop staat de distributie in `dist\`:
+Na afloop staat de distributie in `distro\`:
 
 ```
-dist\
+distro\
 ├── OpenhpsdrZeus.exe     ← de server
 ├── *.dll                 ← .NET runtime
 ├── wwwroot\              ← React/Vite frontend
@@ -35,7 +35,7 @@ dist\
 └── version.json          ← build info
 ```
 
-Start via `dist\Start-AnanCore.bat`, open browser op `http://localhost:6060`.
+Start via `distro\Start-AnanCore.bat`, open browser op `http://localhost:6060`.
 
 ---
 
@@ -48,7 +48,7 @@ Start via `dist\Start-AnanCore.bat`, open browser op `http://localhost:6060`.
 # Alleen clonen, niet bouwen
 .\Install-AnanCore.ps1 -SkipBuild
 
-# Updaten: script opnieuw draaien, dist\ wordt overschreven
+# Updaten: script opnieuw draaien, distro\ wordt overschreven
 .\Install-AnanCore.ps1
 ```
 

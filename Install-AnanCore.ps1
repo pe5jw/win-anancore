@@ -4,7 +4,7 @@
     AnanCore Windows Portable Installer
 .DESCRIPTION
     Cloned ChasingCoffee/AnanCore, bouwt de .NET backend en de Vite frontend,
-    en pakt alles in als een portable Windows distributie in de 'dist\' map
+    en pakt alles in als een portable Windows distributie in de 'distro\' map
     naast dit script.
 
     Vereisten: Git, .NET 10 SDK, Node.js 20+
