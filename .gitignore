@@ -1,0 +1,11 @@
+# Gegenereerde installatiemap (niet in git)
+AnanCore/
+*/AnanCore/
+
+# Lokale test output
+test-output/
+*.log
+
+# Windows
+Thumbs.db
+Desktop.ini
