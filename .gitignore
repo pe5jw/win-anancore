@@ -1,6 +1,6 @@
-# Gegenereerde installatiemap (niet in git)
-AnanCore/
-*/AnanCore/
+# Gegenereerde mappen (niet in git)
+src/
+distro/
 
 # Lokale test output
 test-output/

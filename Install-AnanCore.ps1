@@ -47,7 +47,7 @@ Write-Host @"
 # ── Paden — alles relatief aan de scriptmap ───────────────────────────────────
 $scriptDir = $PSScriptRoot
 $srcDir    = Join-Path $scriptDir "src"
-$distDir   = Join-Path $scriptDir "dist"
+$distroDir = Join-Path $scriptDir "distro"
 
 # ── Vereisten controleren ────────────────────────────────────────────────────
 if (-not $SkipDependencyCheck) {
@@ -105,37 +105,18 @@ if ($SkipBuild) {
     exit 0
 }
 
-# ── dist\ opschonen ───────────────────────────────────────────────────────────
-Write-Header "dist\ voorbereiden"
-if (Test-Path $distDir) {
-    Remove-Item $distDir -Recurse -Force
-    Write-Ok "Vorige dist\ verwijderd"
+# ── distro\ opschonen ─────────────────────────────────────────────────────────
+Write-Header "distro\ voorbereiden"
+if (Test-Path $distroDir) {
+    Remove-Item $distroDir -Recurse -Force
+    Write-Ok "Vorige distro\ verwijderd"
 }
-New-Item -ItemType Directory -Path $distDir | Out-Null
+New-Item -ItemType Directory -Path $distroDir | Out-Null
 
-# ── .NET backend bouwen ──────────────────────────────────────────────────────
-Write-Header ".NET backend bouwen (win-x64, self-contained)"
-Push-Location $srcDir
-try {
-    Write-Host "  dotnet restore..."
-    dotnet restore Zeus.slnx --verbosity quiet
-    if ($LASTEXITCODE -ne 0) { Write-Fail "dotnet restore mislukt" }
-
-    Write-Host "  dotnet publish..."
-    dotnet publish OpenhpsdrZeus `
-        --configuration Release `
-        --runtime win-x64 `
-        --self-contained true `
-        --output $distDir `
-        -p:PublishSingleFile=false `
-        -p:PublishReadyToRun=true `
-        --verbosity quiet
-    if ($LASTEXITCODE -ne 0) { Write-Fail "dotnet publish mislukt" }
-    Write-Ok "Backend gepubliceerd"
-} finally { Pop-Location }
-
-# ── Vite frontend bouwen ─────────────────────────────────────────────────────
-Write-Header "Vite frontend bouwen"
+# ── Stap 1: Vite frontend bouwen ─────────────────────────────────────────────
+# Vite schrijft naar src\Zeus.Server.Hosting\wwwroot\
+# dotnet publish neemt die map daarna mee naar distro\
+Write-Header "Vite frontend bouwen (stap 1/2)"
 $webSrc = Join-Path $srcDir "zeus-web"
 Push-Location $webSrc
 try {
@@ -147,12 +128,29 @@ try {
     $env:VITE_API_BASE = ""
     npm run build --silent
     if ($LASTEXITCODE -ne 0) { Write-Fail "npm run build mislukt" }
+    Write-Ok "Frontend gebouwd"
+} finally { Pop-Location }
 
-    # dist/ → naast de backend in dist\wwwroot\
-    $wwwroot = Join-Path $distDir "wwwroot"
-    New-Item -ItemType Directory -Path $wwwroot -Force | Out-Null
-    Copy-Item -Path (Join-Path $webSrc "dist\*") -Destination $wwwroot -Recurse -Force
-    Write-Ok "Frontend gebouwd en gekopieerd naar dist\wwwroot\"
+# ── Stap 2: .NET backend bouwen en publiceren ─────────────────────────────────
+# publish pakt OpenhpsdrZeus + wwwroot\ (gevuld door Vite) → distro\
+Write-Header ".NET backend bouwen en publiceren (stap 2/2)"
+Push-Location $srcDir
+try {
+    Write-Host "  dotnet restore..."
+    dotnet restore Zeus.slnx --verbosity quiet
+    if ($LASTEXITCODE -ne 0) { Write-Fail "dotnet restore mislukt" }
+
+    Write-Host "  dotnet publish..."
+    dotnet publish OpenhpsdrZeus `
+        --configuration Release `
+        --runtime win-x64 `
+        --self-contained true `
+        --output $distroDir `
+        -p:PublishSingleFile=false `
+        -p:PublishReadyToRun=true `
+        --verbosity quiet
+    if ($LASTEXITCODE -ne 0) { Write-Fail "dotnet publish mislukt" }
+    Write-Ok "Backend gepubliceerd naar distro\"
 } finally { Pop-Location }
 
 # ── Versie info opslaan ──────────────────────────────────────────────────────
@@ -165,9 +163,9 @@ $commitDate = git -C $srcDir log -1 --format="%ci" 2>&1
     commit_date    = "$commitDate"
     dotnet_version = "$(dotnet --version 2>&1)"
     node_version   = "$(node --version 2>&1)"
-} | ConvertTo-Json | Set-Content (Join-Path $distDir "version.json") -Encoding UTF8
+} | ConvertTo-Json | Set-Content (Join-Path $distroDir "version.json") -Encoding UTF8
 
-# ── Start script in dist\ ─────────────────────────────────────────────────────
+# ── Start script in distro\ ───────────────────────────────────────────────────
 Write-Header "Start script aanmaken"
 
 @"
@@ -180,8 +178,8 @@ echo  Open je browser: http://localhost:6060
 echo  Sluit dit venster om te stoppen.
 echo.
 OpenhpsdrZeus.exe
-"@ | Set-Content (Join-Path $distDir "Start-AnanCore.bat") -Encoding UTF8
-Write-Ok "dist\Start-AnanCore.bat aangemaakt"
+"@ | Set-Content (Join-Path $distroDir "Start-AnanCore.bat") -Encoding UTF8
+Write-Ok "distro\Start-AnanCore.bat aangemaakt"
 
 # ── Klaar ─────────────────────────────────────────────────────────────────────
 Write-Host @"
@@ -190,12 +188,12 @@ Write-Host @"
   ║    Build voltooid!                                   ║
   ╚══════════════════════════════════════════════════════╝
 
-  Distributie map : dist\
+  Distributie map : distro\
   Commit          : $commitHash  ($Branch)
 
-  Starten         : dist\Start-AnanCore.bat
+  Starten         : distro\Start-AnanCore.bat
   Interface       : http://localhost:6060
 
-  Distribueren    : zip de volledige dist\ map en stuur door.
+  Distribueren    : zip de volledige distro\ map en stuur door.
 
 "@ -ForegroundColor Green
