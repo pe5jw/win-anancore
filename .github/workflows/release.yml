@@ -38,7 +38,7 @@ jobs:
             -Headers $headers
           $sha   = $resp.sha
           $short = $sha.Substring(0, 7)
-          $date  = $resp.commit.author.date.Substring(0, 10) -replace "-", ""
+          $date  = ([string]$resp.commit.author.date).Substring(0, 10) -replace "-", ""
           $tag   = "build-$date-$short"
           $msg   = $resp.commit.message.Split("`n")[0]
           Write-Host "AnanCore latest commit: $short ($date)"
