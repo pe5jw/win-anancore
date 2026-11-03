@@ -52,8 +52,8 @@ jobs:
         run: |
           $tag = "${{ steps.upstream.outputs.tag }}"
           $exists = "false"
-          gh release view $tag --repo $env:GITHUB_REPOSITORY *>$null
-          if ($LASTEXITCODE -eq 0) { $exists = "true" }
+          $releases = gh api "repos/$env:GITHUB_REPOSITORY/releases" | ConvertFrom-Json
+          if ($releases | Where-Object { $_.tag_name -eq $tag }) { $exists = "true" }
           Write-Host "Release $tag exists: $exists"
           echo "exists=$exists" >> $env:GITHUB_OUTPUT
 
