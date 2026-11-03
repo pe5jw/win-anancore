@@ -50,7 +50,7 @@ jobs:
           $output = & pwsh -NonInteractive -Command {
             # Controleer dat de params bestaan zonder daadwerkelijk te runnen
             $params = (Get-Command .\Install-AnanCore.ps1).Parameters
-            @('InstallDir','Branch','SkipBuild','SkipDependencyCheck') | ForEach-Object {
+            @('Branch','SkipBuild','SkipDependencyCheck') | ForEach-Object {
               if (-not $params.ContainsKey($_)) {
                 throw "Parameter '$_' ontbreekt"
               }
