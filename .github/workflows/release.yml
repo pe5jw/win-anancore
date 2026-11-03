@@ -1,23 +1,18 @@
 name: Auto Release
 
-# Draait elke 6 uur en checkt of de AnanCore branch (freedv-in-core)
-# nieuwe commits heeft sinds de laatste win-anancore release.
-# Als ja: bouwt de Windows portable distro en publiceert een release.
-# Kan ook handmatig getriggerd worden via Actions → Run workflow.
-
 on:
   schedule:
-    - cron: '23 */6 * * *'   # elke 6 uur
+    - cron: '23 */6 * * *'
   workflow_dispatch:
     inputs:
       force:
-        description: 'Forceer build ook als versie al bestaat'
+        description: 'Force build even if release already exists'
         type: boolean
         default: false
 
 jobs:
   check-and-release:
-    name: Check AnanCore commits en publiceer
+    name: Check AnanCore and publish
     runs-on: windows-latest
     permissions:
       contents: write
@@ -26,48 +21,46 @@ jobs:
       - name: Checkout win-anancore
         uses: actions/checkout@v4
 
-      - name: Haal laatste AnanCore commit op
+      - name: Get latest AnanCore commit
         id: upstream
         shell: pwsh
         run: |
           $branch = "freedv-in-core"
           $resp = Invoke-RestMethod `
             "https://api.github.com/repos/ChasingCoffee/AnanCore/commits/$branch" `
-            -Headers @{ 'User-Agent' = 'win-anancore-builder' }
-          $sha     = $resp.sha
-          $short   = $sha.Substring(0, 7)
-          $date    = $resp.commit.author.date.Substring(0, 10) -replace '-', ''
-          $tag     = "build-$date-$short"
-          $message = $resp.commit.message.Split("`n")[0]
-          Write-Host "AnanCore laatste commit: $short ($date)"
+            -Headers @{ "User-Agent" = "win-anancore-builder" }
+          $sha   = $resp.sha
+          $short = $sha.Substring(0, 7)
+          $date  = $resp.commit.author.date.Substring(0, 10) -replace "-", ""
+          $tag   = "build-$date-$short"
+          $msg   = $resp.commit.message.Split("`n")[0]
+          Write-Host "AnanCore latest commit: $short ($date)"
           Write-Host "Tag: $tag"
-          "sha=$sha"         >> $env:GITHUB_OUTPUT
-          "short=$short"     >> $env:GITHUB_OUTPUT
-          "date=$date"       >> $env:GITHUB_OUTPUT
-          "tag=$tag"         >> $env:GITHUB_OUTPUT
-          "message=$message" >> $env:GITHUB_OUTPUT
-          "branch=$branch"   >> $env:GITHUB_OUTPUT
+          echo "sha=$sha"         >> $env:GITHUB_OUTPUT
+          echo "short=$short"     >> $env:GITHUB_OUTPUT
+          echo "date=$date"       >> $env:GITHUB_OUTPUT
+          echo "tag=$tag"         >> $env:GITHUB_OUTPUT
+          echo "message=$msg"     >> $env:GITHUB_OUTPUT
+          echo "branch=$branch"   >> $env:GITHUB_OUTPUT
 
-      - name: Controleer of release al bestaat
+      - name: Check if release already exists
         id: check
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = "${{ steps.upstream.outputs.tag }}"
-          $exists = $false
-          try {
-            $null = gh release view $tag --repo $env:GITHUB_REPOSITORY 2>&1
-            if ($LASTEXITCODE -eq 0) { $exists = $true }
-          } catch { }
-          Write-Host "Release $tag bestaat al: $exists"
-          "exists=$($exists.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          $exists = "false"
+          $result = gh release view $tag --repo $env:GITHUB_REPOSITORY 2>&1
+          if ($LASTEXITCODE -eq 0) { $exists = "true" }
+          Write-Host "Release $tag exists: $exists"
+          echo "exists=$exists" >> $env:GITHUB_OUTPUT
 
-      - name: Sla over als release al bestaat
+      - name: Skip if release already exists
         if: steps.check.outputs.exists == 'true' && github.event.inputs.force != 'true'
         shell: pwsh
         run: |
-          Write-Host "Release ${{ steps.upstream.outputs.tag }} bestaat al — niets te doen."
+          Write-Host "Release ${{ steps.upstream.outputs.tag }} already exists - nothing to do."
 
       - name: Setup .NET 10
         if: steps.check.outputs.exists == 'false' || github.event.inputs.force == 'true'
@@ -96,47 +89,45 @@ jobs:
           $tag     = "${{ steps.upstream.outputs.tag }}"
           $zipName = "AnanCore-windows-x64-$tag.zip"
           Compress-Archive -Path distro\* -DestinationPath $zipName
-          Write-Host "Zip aangemaakt: $zipName"
-          "zip=$zipName" >> $env:GITHUB_OUTPUT
+          Write-Host "Created zip: $zipName"
+          echo "zip=$zipName" >> $env:GITHUB_OUTPUT
 
-      - name: Publiceer GitHub Release
+      - name: Write release notes
+        if: steps.check.outputs.exists == 'false' || github.event.inputs.force == 'true'
+        shell: pwsh
+        run: |
+          $short  = "${{ steps.upstream.outputs.short }}"
+          $sha    = "${{ steps.upstream.outputs.sha }}"
+          $date   = "${{ steps.upstream.outputs.date }}"
+          $msg    = "${{ steps.upstream.outputs.message }}"
+          $branch = "${{ steps.upstream.outputs.branch }}"
+          $d = "$($date.Substring(0,4))-$($date.Substring(4,2))-$($date.Substring(6,2))"
+          $notes = "## AnanCore Windows Portable Build`n`n"
+          $notes += "Built from [ChasingCoffee/AnanCore](https://github.com/ChasingCoffee/AnanCore) branch ``$branch``.`n`n"
+          $notes += "| | |`n|---|---|`n"
+          $notes += "| **Commit** | [$short](https://github.com/ChasingCoffee/AnanCore/commit/$sha) |`n"
+          $notes += "| **Date** | $d |`n"
+          $notes += "| **Message** | $msg |`n`n"
+          $notes += "### How to use`n"
+          $notes += "1. Download and extract the zip`n"
+          $notes += "2. Double-click ``Start-AnanCore.bat```n"
+          $notes += "3. Open your browser at http://localhost:6060`n`n"
+          $notes += "### Requirements`n"
+          $notes += "None - self-contained portable build (.NET runtime included).`n`n"
+          $notes += "> Warning: Experimental - not supported by AnanCore, ANAN, or any other party.`n"
+          $notes += "> Issues with this Windows build: open an issue in this repository."
+          $notes | Set-Content release-notes.md -Encoding UTF8
+
+      - name: Publish GitHub Release
         if: steps.check.outputs.exists == 'false' || github.event.inputs.force == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $tag     = "${{ steps.upstream.outputs.tag }}"
-          $short   = "${{ steps.upstream.outputs.short }}"
-          $date    = "${{ steps.upstream.outputs.date }}"
-          $msg     = "${{ steps.upstream.outputs.message }}"
-          $branch  = "${{ steps.upstream.outputs.branch }}"
-          $zip     = "${{ steps.zip.outputs.zip }}"
-
-          $notes = @"
-## AnanCore Windows Portable Build
-
-Built from [ChasingCoffee/AnanCore](https://github.com/ChasingCoffee/AnanCore) branch ``$branch``.
-
-| | |
-|---|---|
-| **Commit** | [$short](https://github.com/ChasingCoffee/AnanCore/commit/${{ steps.upstream.outputs.sha }}) |
-| **Date** | $($date.Substring(0,4))-$($date.Substring(4,2))-$($date.Substring(6,2)) |
-| **Message** | $msg |
-
-### How to use
-1. Download and extract the zip
-2. Double-click ``Start-AnanCore.bat``
-3. Open your browser at http://localhost:6060
-
-### Requirements
-None — this is a self-contained portable build (.NET runtime included).
-
----
-> ⚠️ **Experimental** — not supported by AnanCore, ANAN, or any other party.
-> Issues with this Windows build → [open an issue here](https://github.com/pe5jw/win-anancore/issues).
-"@
+          $tag = "${{ steps.upstream.outputs.tag }}"
+          $zip = "${{ steps.zip.outputs.zip }}"
           gh release create $tag $zip `
             --repo $env:GITHUB_REPOSITORY `
             --title "AnanCore Windows $tag" `
-            --notes $notes
-          Write-Host "Release gepubliceerd: $tag"
+            --notes-file release-notes.md
+          Write-Host "Published release: $tag"
