@@ -24,11 +24,18 @@ jobs:
       - name: Get latest AnanCore commit
         id: upstream
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $branch = "freedv-in-core"
+          $headers = @{
+            "User-Agent"    = "win-anancore-builder"
+            "Authorization" = "Bearer $env:GH_TOKEN"
+            "Accept"        = "application/vnd.github+json"
+          }
           $resp = Invoke-RestMethod `
             "https://api.github.com/repos/ChasingCoffee/AnanCore/commits/$branch" `
-            -Headers @{ "User-Agent" = "win-anancore-builder" }
+            -Headers $headers
           $sha   = $resp.sha
           $short = $sha.Substring(0, 7)
           $date  = $resp.commit.author.date.Substring(0, 10) -replace "-", ""
