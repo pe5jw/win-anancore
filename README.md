@@ -50,7 +50,14 @@ distro\
 └── version.json          ← build info
 ```
 
-Start via `distro\Start-AnanCore.bat`, then open your browser at `http://localhost:6060`.
+Start via `distro\Start-AnanCore.bat`, then open your browser:
+
+| Access | URL | Notes |
+|---|---|---|
+| Same PC | http://localhost:6060 | HTTP, no certificate warning |
+| LAN (phone/tablet/other PC) | https://&lt;your-PC-IP&gt;:6443 | HTTPS with a self-signed certificate — click through the browser warning once |
+
+AnanCore generates a self-signed LAN certificate automatically on first start (`%LocalAppData%\Zeus\certs\zeus-lan.pfx`). The browser security warning is expected and harmless — accepting it once enables microphone access (getUserMedia requires a secure context).
 
 ---
 
