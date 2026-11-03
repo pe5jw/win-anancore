@@ -76,6 +76,16 @@ AnanCore generates a self-signed LAN certificate automatically on first start (`
 
 ---
 
+## Support
+
+If this project is useful to you, consider buying me a coffee:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/contestpusher)
+
+More of my ham radio open source projects: [ContestPusher](https://github.com/pe5jw/ContestPusher)
+
+---
+
 ## License
 
 [AnanCore](https://github.com/ChasingCoffee/AnanCore) — GPL-2.0-or-later.
