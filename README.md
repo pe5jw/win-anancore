@@ -1,68 +1,75 @@
-# win-anancore — Windows Portable Installer voor AnanCore
+# win-anancore — Windows Portable Installer for AnanCore
 
-Bouwt [AnanCore](https://github.com/ChasingCoffee/AnanCore) (Zeus Standalone voor ANAN G2/HPSDR radio's) als een portable Windows distributie.
+This repository contains a PowerShell script that builds [AnanCore](https://github.com/ChasingCoffee/AnanCore) (Zeus Standalone for ANAN G2 / HPSDR radios) as a portable Windows 11 zip distribution.
 
-Het script cloned de broncode, bouwt de .NET 10 backend en de Vite/React frontend, en zet alles klaar in een `distro\` map naast het script. Die map is portable: zippen en doorsturen.
+> **⚠️ Experimental — not officially supported**
+> This Windows build is not supported by the AnanCore project, ANAN, or any other party. It is a personal experiment. If you run into installation or build issues, please [open a GitHub issue](https://github.com/pe5jw/win-anancore/issues) in this repository — do not report them upstream to AnanCore.
+
+> **🛠️ Hobby project**
+> This project is maintained in spare time and only as long as there is interest and time for it. There are no guarantees on response times, update frequency, or long-term support.
 
 ---
 
-## Vereisten
+## How it works
 
-| Software | Versie | Download |
+The script clones the AnanCore source, builds the .NET 10 backend and the Vite/React frontend, and packages everything into a `distro\` folder next to the script. That folder is self-contained and portable: zip it up and copy it anywhere.
+
+Automated releases are published to [Releases](https://github.com/pe5jw/win-anancore/releases) whenever a new AnanCore upstream release is detected.
+
+---
+
+## Requirements (build machine)
+
+| Software | Version | Download |
 |---|---|---|
 | **Git** | 2.x | https://git-scm.com/download/win |
 | **.NET SDK** | 10.0 | https://dotnet.microsoft.com/download/dotnet/10.0 |
 | **Node.js** | 20 LTS+ | https://nodejs.org/ |
 
+The built `distro\` is self-contained — no .NET or Node.js needed on the machine that runs it.
+
 ---
 
-## Gebruik
+## Usage
 
 ```powershell
 git clone https://github.com/pe5jw/win-anancore.git
 cd win-anancore
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 .\Install-AnanCore.ps1
 ```
 
-Na afloop staat de distributie in `distro\`:
+After the build, the distribution is in `distro\`:
 
 ```
 distro\
-├── OpenhpsdrZeus.exe     ← de server
-├── *.dll                 ← .NET runtime
+├── OpenhpsdrZeus.exe     ← the server
+├── *.dll                 ← .NET runtime (self-contained)
 ├── wwwroot\              ← React/Vite frontend
-├── Start-AnanCore.bat    ← dubbelklik om te starten
+├── Start-AnanCore.bat    ← double-click to start
 └── version.json          ← build info
 ```
 
-Start via `distro\Start-AnanCore.bat`, open browser op `http://localhost:6060`.
+Start via `distro\Start-AnanCore.bat`, then open your browser at `http://localhost:6060`.
 
 ---
 
-## Opties
+## Options
 
 ```powershell
-# Andere branch
+# Use a different branch
 .\Install-AnanCore.ps1 -Branch main
 
-# Alleen clonen, niet bouwen
+# Clone only, skip build
 .\Install-AnanCore.ps1 -SkipBuild
 
-# Updaten: script opnieuw draaien, distro\ wordt overschreven
+# Update: re-run the script, distro\ will be rebuilt
 .\Install-AnanCore.ps1
 ```
 
 ---
 
-## PowerShell Execution Policy
+## License
 
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
-```
-
----
-
-## Licentie
-
-[AnanCore](https://github.com/ChasingCoffee/AnanCore) — GPL-2.0-or-later.  
-Dit installer script — MIT.
+[AnanCore](https://github.com/ChasingCoffee/AnanCore) — GPL-2.0-or-later.
+This installer script — MIT.
